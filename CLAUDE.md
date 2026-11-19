@@ -41,5 +41,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 1月のテスト用 CSV：一番上の `シフトデータ_20270101-20270103_テスト用.csv`（実名入り・GitHub に載せない。2027/1/1〜3）
 - 職場の PC は Windows（Lenovo）、拡張機能 OK。ZIP は `dist/シフト自動入力.zip`（中に一番上のフォルダを作らない）。渡し方（ZIP かウェブストア5ドル）は未定
 - サイドパネルの画面テスト（`node tests/sidepanel_ui.js`、16項目合格）・README・22日の手順書（`docs/11月22日のテスト手順.md`）は済み
-- 次：本人に手順書を確かめてもらう → GitHub 公開（本人の OK）→ 11/22 の結果を待つ
+- 手順書 PDF（`docs/11月22日のテスト手順.pdf`、3ページ目は立ち会う人用）完成。GitHub 公開済み：https://github.com/m-tsuna/airshift-to-hacomono-shift （2026-11-19）
+- 次：11/22 夜のテスト結果を聞く（立ち会いのメモ・時間・12月の見比べの件数）→ 直す → 記事。ここからの直しは Feature Branch → PR → /code-review
 - 11/22 夜：ご主人がこの Mac の Chrome でテスト（書き込みは1月のマスだけ）。12/18〜19：1月分の本番＝試運転
