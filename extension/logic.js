@@ -44,6 +44,10 @@
     "2027-04-29", "2027-05-03", "2027-05-04", "2027-05-05", "2027-07-19", "2027-08-11",
     "2027-09-20", "2027-09-23", "2027-10-11", "2027-11-03", "2027-11-23",
   ]);
+  // その年の祝日が一覧に入っているか（無い年は、サイドパネルで知らせる）
+  function hasHolidayList(y) {
+    return [...JP_HOLIDAYS].some((k) => k.startsWith(y + "-"));
+  }
   function isHoliday(y, m, d) {
     return JP_HOLIDAYS.has(y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"));
   }
@@ -216,7 +220,7 @@
 
   const api = {
     UserError, parseCsv, normTime, normName, readAirshift, parseCell, buildPlan, defaultSource,
-    monthKey, isHoliday, DEFAULT_WEEKLY, WEEKDAY_NAMES, BREAK_NAME,
+    monthKey, isHoliday, hasHolidayList, DEFAULT_WEEKLY, WEEKDAY_NAMES, BREAK_NAME,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ShiftLogic = api;

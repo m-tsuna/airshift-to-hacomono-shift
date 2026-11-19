@@ -168,6 +168,21 @@ await js(`document.getElementById("run").click(); "ok"`);
 await sleep(1500);
 check("  入れ終わると「まだ保存されていません → 保存するを押して」と出る", (await text("progress")).includes("画面に入れました") && (await text("result")).includes("まだ hacomono には保存されていません") && (await text("result")).includes("保存する"), await text("progress") + " / " + await text("result"));
 
+// 1か月分の画面で名前で覚えた設定は、表で番号が分かっても失わない
+await openPanel(`window.__fake.table = ${JSON.stringify({ ...FORM, staff: [{ code: "", name: "店長", cells: Array(31).fill("休") }] })};`);
+await js(`(() => { const sel = document.querySelector("#staffList select"); sel.value = "weekly"; sel.dispatchEvent(new Event("change")); return "ok"; })()`);
+await sleep(300);
+await js(`window.__fake.table = ${JSON.stringify(fakeTable("202601"))}; readTable().then(() => "ok")`);
+await sleep(300);
+const migrated = await js(`(() => { const sel = [...document.querySelectorAll("#staffList .staff")].find((d) => d.textContent.includes("[IN0001]")).querySelector("select"); return sel.value; })()`);
+check("1か月分の画面で選んだ「曜日の決まり」が、表で番号が分かっても残る", migrated === "weekly", migrated);
+
+// 祝日の一覧が無い年（2028年）は知らせる
+await openPanel(`window.__fake.table = ${JSON.stringify({ ...FORM, month: "202801", staff: [{ code: "", name: "店長", cells: Array(31).fill("休") }] })};`);
+await js(`(() => { const sel = document.querySelector("#staffList select"); sel.value = "weekly"; sel.dispatchEvent(new Event("change")); return "ok"; })()`);
+await sleep(300);
+check("祝日の一覧が無い年 → 「2028年の祝日の一覧がありません → …」", (await text("msg")).includes("2028年の祝日の一覧がありません"), await text("msg"));
+
 console.log(`\n合格 ${pass}／不合格 ${fail}`);
 } finally { chrome.kill(); }
 process.exit(fail ? 1 : 0);

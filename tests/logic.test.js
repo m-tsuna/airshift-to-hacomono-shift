@@ -127,4 +127,5 @@ test("祝日：hacomono に印が無くても、祝日の一覧に当たれば�
   assert.ok(!plan.items.some((it) => it.d === 11), "1/11（月・成人の日）は月曜で休み");
   assert.equal(plan.items.find((it) => it.d === 2).want.start, "11:00"); // 1/2（土）は入る
   assert.ok(L.isHoliday(2027, 3, 22) && !L.isHoliday(2027, 1, 2));
+  assert.ok(L.hasHolidayList(2027) && !L.hasHolidayList(2028));
 });

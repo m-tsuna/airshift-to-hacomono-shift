@@ -86,6 +86,14 @@ async function readTable() {
     } else {
       for (const st of res.staff) state.codes[L.normName(st.name)] = st.code;
     }
+    // 名前で覚えていた設定は、番号が分かったら番号の方へ移す（選んだ入れ方を失わないため）
+    for (const st of res.staff) {
+      const byName = "名前:" + L.normName(st.name);
+      if (st.code !== byName && state.settings[byName]) {
+        if (!state.settings[st.code] || !state.settings[st.code].chosen) state.settings[st.code] = state.settings[byName];
+        delete state.settings[byName];
+      }
+    }
     state.table = res;
     // 初めての人には、最初の入れ方を決めておく（CSV に名前があれば CSV）
     for (const st of res.staff) {
@@ -119,6 +127,12 @@ function render() {
     $("summary").textContent = "";
     updateButtons();
     return;
+  }
+  // 祝日の一覧が無い年は、祝日も出勤として出てしまうので知らせる
+  const y = +state.table.month.slice(0, 4);
+  const usesHoliday = state.table.staff.some((st) => { const s = state.settings[st.code]; return s && s.source === "weekly" && s.holidayOff !== false; });
+  if (usesHoliday && !L.hasHolidayList(y)) {
+    showMsg("ツールに " + y + "年の祝日の一覧がありません。曜日の決まりの人は、祝日も出勤として出ます → 祝日の日はチェックを外すか、作った人に一覧を足してもらってください", "error");
   }
   const c = state.plan.counts;
   $("summary").textContent =
@@ -236,7 +250,7 @@ async function run(onlyOne) {
     for (const it of items) {
       if (state.stopRequested) break;
       $("progress").textContent = items.length + "件中 " + done + "件完了…（" + it.m + "/" + it.d + " " + it.name + "）";
-      const res = await ask({ type: "applyOne", item: it });
+      const res = await ask({ type: "applyOne", item: { ...it, mode: state.table.mode } });
       done++;
       if (res && res.ok) { if (it.kind === "new") newCount++; else changeCount++; }
       else {

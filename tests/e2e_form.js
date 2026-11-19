@@ -80,7 +80,7 @@ let plan = L.buildPlan(t, null, { IN0001: weekly });
 check("店長の1日（木・元日）は、画面に祝日の印が無くても入れない", !plan.items.some((i) => i.d === 1));
 const t0 = Date.now();
 let errors = await applyAll(plan);
-const n = plan.items.filter((i) => i.kind !== "same").length;
+const n = plan.items.filter((i) => i.kind === "new" || i.kind === "change").length;
 check("店長 " + n + "件すべて画面に入った（" + ((Date.now() - t0) / 1000).toFixed(1) + "秒）", errors.length === 0, errors.join(" / "));
 let model = JSON.parse(await js("JSON.stringify(window.__mock.model)"));
 const bad = plan.items.filter((i) => i.want && (model[i.d].off || model[i.d].start !== i.want.start || model[i.d].end !== i.want.end));
@@ -120,6 +120,23 @@ check("B：要確認の日は変わっていない", errors.length === 0 && mode
 const wrong = { ...plan.items.find((i) => i.kind === "new") , name: "スタッフ A" };
 const r = await js("window.__shiftFiller.applyOne(" + JSON.stringify(wrong) + ")");
 check("画面の人と違う人の分は入れずに止める", !r.ok && r.fatal && r.error.includes("ではなくなりました"), JSON.stringify(r));
+
+// ---- レビューで見つかった守り（まだ何も入れていない画面で試す）----
+await open("IN0003");
+const newItem = plan.items.find((i) => i.kind === "new");
+// 時間帯が2つある日：チェックを外す前に止め、何も変えない
+await js(`(() => { const p = document.querySelector('[data-day="${newItem.d}"]').children[1]; const x = document.createElement("input"); x.type = "time"; p.appendChild(x); const y = document.createElement("input"); y.type = "time"; p.appendChild(y); return "ok"; })()`);
+let r2 = await js("window.__shiftFiller.applyOne(" + JSON.stringify(newItem) + ")");
+model = JSON.parse(await js("JSON.stringify(window.__mock.model)"));
+check("時間帯が2つある日は、休日のチェックも外さずに止める", !r2.ok && r2.error.includes("何も変えていません") && model[newItem.d].off === true, JSON.stringify(r2) + JSON.stringify(model[newItem.d]));
+// 一覧を作ったあとに画面の種類が変わった（表のつもりの頼みが1か月分の画面に来た／その逆）
+r2 = await js("window.__shiftFiller.applyOne(" + JSON.stringify({ ...newItem, mode: "table" }) + ")");
+check("画面の種類が一覧を作ったときと違えば止める", !r2.ok && r2.fatal && r2.error.includes("画面が変わりました"), JSON.stringify(r2));
+// 画面の月が変わった
+await js(`document.querySelector(".period-form").value = "202602"; "ok"`);
+r2 = await js("window.__shiftFiller.applyOne(" + JSON.stringify({ ...newItem, mode: "form" }) + ")");
+model = JSON.parse(await js("JSON.stringify(window.__mock.model)"));
+check("画面の月が変わったら、入れずに止める", !r2.ok && r2.fatal && r2.error.includes("ではなくなりました") && model[newItem.d].off === true, JSON.stringify(r2));
 
 console.log(`\n合格 ${pass}／不合格 ${fail}`);
 } finally { chrome.kill(); }
