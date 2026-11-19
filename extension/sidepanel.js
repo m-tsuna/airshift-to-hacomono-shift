@@ -12,6 +12,7 @@ const state = {
   csv: null,        // readAirshift の結果
   table: null,      // hacomono の表
   settings: {},     // 人ごとの入れ方（chrome.storage に覚える）
+  codes: {},        // 名前 → スタッフコード（表で読んだときに覚える。1か月分の画面には番号が出ないため）
   plan: null,       // buildPlan の結果
   unchecked: new Set(), // 一覧でチェックを外したマス
   running: false,
@@ -30,10 +31,12 @@ async function loadSettings() {
   try {
     const v = await chrome.storage.local.get("settings");
     state.settings = v.settings || {};
-  } catch (e) { state.settings = {}; }
+    const c = await chrome.storage.local.get("codes");
+    state.codes = c.codes || {};
+  } catch (e) { state.settings = {}; state.codes = {}; }
 }
 async function saveSettings() {
-  try { await chrome.storage.local.set({ settings: state.settings }); } catch (e) { /* 覚えられなくても動く */ }
+  try { await chrome.storage.local.set({ settings: state.settings, codes: state.codes }); } catch (e) { /* 覚えられなくても動く */ }
 }
 
 // ---- hacomono のタブとやり取り -----------------------------------
@@ -77,6 +80,12 @@ async function readTable() {
   try {
     const res = await ask({ type: "readTable" });
     if (!res || !res.ok) throw new L.UserError(res ? res.error : "表が読めませんでした");
+    if (res.mode === "form") {
+      // 1か月分の画面：番号が出ないので、表で覚えた番号を名前から探す（無ければ名前で覚える）
+      for (const st of res.staff) st.code = state.codes[L.normName(st.name)] || "名前:" + L.normName(st.name);
+    } else {
+      for (const st of res.staff) state.codes[L.normName(st.name)] = st.code;
+    }
     state.table = res;
     // 初めての人には、最初の入れ方を決めておく（CSV に名前があれば CSV）
     for (const st of res.staff) {
@@ -85,10 +94,13 @@ async function readTable() {
       else if (s.source === "none" && L.defaultSource(st.name, state.csv) === "csv" && !s.chosen) s.source = "csv";
     }
     await saveSettings();
-    $("tableInfo").textContent = "hacomono：" + res.month.slice(0, 4) + "年" + +res.month.slice(4) + "月の表（" + res.staff.length + "人）";
+    const ym = res.month.slice(0, 4) + "年" + +res.month.slice(4) + "月";
+    $("tableInfo").textContent = res.mode === "form"
+      ? "hacomono：" + ym + "・" + res.staff[0].name + " さんの1か月分の画面"
+      : "hacomono：" + ym + "の表（" + res.staff.length + "人）";
   } catch (e) {
     state.table = null;
-    $("tableInfo").textContent = "hacomono のシフト表を開いてください。";
+    $("tableInfo").textContent = "hacomono のシフトの画面を開いてください。";
     showMsg(e instanceof L.UserError ? e.message : "思わぬエラー：" + e.message, "error");
   }
   render();
@@ -144,7 +156,7 @@ function renderStaff() {
     const div = document.createElement("div");
     div.className = "staff";
     const csvHas = L.defaultSource(st.name, state.csv) === "csv";
-    div.innerHTML = "<b>" + escapeHtml(st.name) + "</b> <span class='sub'>[" + escapeHtml(st.code) + "]</span><br>" +
+    div.innerHTML = "<b>" + escapeHtml(st.name) + "</b> " + (st.code.startsWith("名前:") ? "" : "<span class='sub'>[" + escapeHtml(st.code) + "]</span>") + "<br>" +
       "<select>" +
       "<option value='csv'>Airシフトの CSV から" + (state.csv && !csvHas ? "（CSV にいません）" : "") + "</option>" +
       "<option value='weekly'>曜日の決まりで</option>" +
@@ -198,11 +210,15 @@ function selectedItems() {
   if (!state.plan) return [];
   return state.plan.items.filter((it) => (it.kind === "new" || it.kind === "change") && !state.unchecked.has(itemKey(it)));
 }
+function isForm() { return !!(state.table && state.table.mode === "form"); }
 function updateButtons() {
   const n = selectedItems().length;
   $("run").disabled = state.running || n === 0;
   $("tryOne").disabled = state.running || n === 0;
-  $("run").textContent = n ? "実行（" + n + "件）" : "実行";
+  // 1か月分の画面は保存を人が押すので、「1件だけ試す」は要らない
+  $("tryOne").hidden = isForm();
+  const word = isForm() ? "画面に入れる" : "実行";
+  $("run").textContent = n ? word + "（" + n + "件）" : word;
   $("reload").disabled = state.running;
   $("stop").hidden = !state.running;
 }
@@ -213,6 +229,7 @@ async function run(onlyOne) {
   if (!items.length) return;
   state.running = true; state.stopRequested = false; updateButtons();
   showMsg(""); $("result").innerHTML = "";
+  const form = isForm();
   let done = 0, newCount = 0, changeCount = 0;
   const failed = [];
   try {
@@ -232,11 +249,15 @@ async function run(onlyOne) {
   }
   state.running = false;
   const stopped = state.stopRequested ? "（途中で止めました）" : "";
-  $("progress").textContent = (onlyOne ? "1件だけ試しました" : "終わりました") + stopped +
+  $("progress").textContent = (onlyOne ? "1件だけ試しました" : form ? "画面に入れました" : "終わりました") + stopped +
     "：入れた " + newCount + "件／変えた " + changeCount + "件／失敗 " + failed.length + "件";
+  const saveNote = form && newCount + changeCount > 0
+    ? "<div class='msg info'><b>まだ hacomono には保存されていません。</b>\nhacomono の画面で中身を見て、合っていれば右下の「保存する」を押してください。</div>" : "";
   if (failed.length) {
     $("result").innerHTML = "<div class='msg error'>" + failed.map((f) =>
-      f.it.m + "/" + f.it.d + " " + escapeHtml(f.it.name) + "：" + escapeHtml(f.error)).join("\n") + "</div>";
+      f.it.m + "/" + f.it.d + " " + escapeHtml(f.it.name) + "：" + escapeHtml(f.error)).join("\n") + "</div>" + saveNote;
+  } else if (form) {
+    $("result").innerHTML = saveNote;
   } else if (onlyOne) {
     $("result").innerHTML = "<div class='msg info'>hacomono の表で、そのマスが合っているか確かめてから「実行」を押してください。</div>";
   }
