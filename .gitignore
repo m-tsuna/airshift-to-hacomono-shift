@@ -13,4 +13,4 @@ dist/
 # 手順書から作った PDF（Markdown が元。作り直せる）
 docs/*.pdf
 # 立ち会う人の名前が入った手順書（GitHub に載せない）
-docs/11月22日のテスト手順.md
+docs/11月22日のテスト手順*.md
