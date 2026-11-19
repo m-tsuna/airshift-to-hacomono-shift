@@ -1,0 +1,16 @@
+# 実名入りのファイル（保存した hacomono のページ・表）
+private/
+# 記事の材料・下書き（GitHub に載せない）
+作業記録.md
+提出記事.md
+# Mac・エディタ
+.DS_Store
+node_modules/
+# 配る用の ZIP（extension から作る）
+dist/
+# 実名入りの CSV（テスト用も本物の名前のまま）
+シフトデータ_*.csv
+# 手順書から作った PDF（Markdown が元。作り直せる）
+docs/*.pdf
+# 立ち会う人の名前が入った手順書（GitHub に載せない）
+docs/11月22日のテスト手順.md

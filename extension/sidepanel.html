@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>シフト自動入力</title>
+<style>
+  :root { --green:#2e7d32; --red:#c62828; --orange:#e65100; --gray:#666; --line:#ddd; }
+  body { font-family: -apple-system, "Hiragino Sans", sans-serif; font-size: 13px; margin: 0; padding: 12px; color:#222; background:#fff; }
+  h1 { font-size: 16px; margin: 0 0 8px; }
+  h2 { font-size: 14px; margin: 16px 0 6px; }
+  .msg { padding: 8px; border-radius: 6px; margin: 8px 0; white-space: pre-wrap; }
+  .msg.info { background:#e8f5e9; }
+  .msg.error { background:#ffebee; color: var(--red); }
+  .msg:empty { display:none; }
+  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 12px; text-align:center; cursor:pointer; }
+  .drop.over { border-color: var(--green); background:#f1f8e9; }
+  .sub { color: var(--gray); font-size: 12px; }
+  .staff { border:1px solid var(--line); border-radius:6px; padding:6px 8px; margin:4px 0; }
+  .staff select { margin-left: 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border-bottom: 1px solid #eee; padding: 3px 2px; text-align:left; font-weight: normal; }
+  .weekly input[type=time] { width: 82px; }
+  .kind { font-size: 11px; padding: 1px 4px; border-radius: 3px; color:#fff; white-space:nowrap; }
+  .k-new { background: var(--green); } .k-change { background: var(--orange); } .k-check { background: var(--red); } .k-same { background:#999; }
+  .buttons { position: sticky; bottom: 0; background:#fff; padding: 8px 0; display:flex; gap:8px; }
+  button { font-size: 13px; padding: 8px 10px; border-radius: 6px; border:1px solid #bbb; background:#f5f5f5; cursor:pointer; }
+  button.primary { background: var(--green); color:#fff; border-color: var(--green); flex:1; }
+  button:disabled { opacity: .4; cursor: default; }
+  .progress { font-weight: bold; margin: 6px 0; }
+  details summary { cursor:pointer; color: var(--gray); }
+</style>
+</head>
+<body>
+  <h1>シフト自動入力</h1>
+  <div class="sub">Airシフト → hacomono のシフト表。データはパソコンの外に送りません。</div>
+  <div id="msg" class="msg"></div>
+
+  <h2>① Airシフトの CSV を選ぶ</h2>
+  <label class="drop" id="drop">
+    <input type="file" id="file" accept=".csv,text/csv" hidden>
+    <span id="fileLabel">ここを押してファイルを選ぶ（ドラッグでも可）</span>
+  </label>
+  <div class="sub">Airシフトの「シフトデータ」の CSV。曜日の決まりの人だけなら、選ばなくても使えます。</div>
+
+  <h2>② hacomono に入れる人</h2>
+  <div class="sub" id="tableInfo">hacomono のシフト表を開いてください。</div>
+  <div id="staffList"></div>
+  <button id="reload">hacomono の表を読み直す</button>
+
+  <h2>③ 入れる内容</h2>
+  <div id="summary" class="sub">①と②が済むと、ここに出ます。</div>
+  <div id="planBox"></div>
+
+  <div id="progress" class="progress"></div>
+  <div id="result"></div>
+
+  <div class="buttons">
+    <button id="tryOne" disabled>1件だけ試す</button>
+    <button id="run" class="primary" disabled>実行</button>
+    <button id="stop" hidden>止める</button>
+  </div>
+
+  <script src="logic.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
