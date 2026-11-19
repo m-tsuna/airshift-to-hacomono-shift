@@ -18,7 +18,7 @@ code { background: #f3f3f3; padding: 1px 4px; border-radius: 3px; font-size: 10p
 table { border-collapse: collapse; width: 100%; font-size: 10pt; }
 th, td { border: 1px solid #bbb; padding: 4px 6px; vertical-align: top; }
 th { background: #f5f5f5; }
-img { max-width: 52%; border: 1px solid #ccc; margin: 6px 0; }
+img { max-width: 44%; border: 1px solid #ccc; margin: 6px 0; }
 hr { border: none; border-top: 1px dashed #aaa; margin: 8px 0; }
 table { break-inside: avoid; }
 """
