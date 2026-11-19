@@ -43,7 +43,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 11/19 夜：本物で②「2026年11月の表（3人）」と出た。④2027年1月は表に人の行が無く、ご主人は毎月「1か月分の画面」で入れている（b）と判明。元日は休み
 - ブランチ `feature/month-form`：1か月分の画面に入れる版（保存は人）＋祝日一覧。単体12・練習用（表14／1か月分19）・サイドパネル22 合格（レビューの指摘9件を直したあと）。この Mac の Chrome のコピー（`~/Downloads/シフト自動入力`）に写し済み。**直したらコピーにも写して更新ボタン**
 - 11/19 深夜：本物の1か月分の画面（2027年1月・保存なし）で、店長の 1/2・トレーナーの 1/1〜1/3 が正しく入るのを確認。手順書（md・PDF 2つ）・ZIP・README も新しい版に直した（ブランチでコミット済み・未 push）
-- PR #1 作成済み（2026-11-20）：https://github.com/m-tsuna/airshift-to-hacomono-shift/pull/1 。/code-review の指摘9件を直して push 済み。次：本人 OK で main にマージ。店長用 PDF（新しい版）をご主人に渡す
+- PR #1 作成済み（2026-11-20）：https://github.com/m-tsuna/airshift-to-hacomono-shift/pull/1 。/code-review の指摘9件を直して push 済み。**main へのマージは 11/22 のテストのあと**（本人が決めた）。テストで直す点はこのブランチに足してからマージ。店長用 PDF（新しい版）をご主人に渡す
 - 1月のテスト用 CSV：一番上の `シフトデータ_20270101-20270103_テスト用.csv`（実名入り・GitHub に載せない）
 - 職場の PC は Windows（Lenovo）。渡し方（ZIP かウェブストア5ドル）は未定
 - 11/22 夜：ご主人がこの Mac の Chrome でテスト（1月分）。12/18〜19：1月分の本番＝試運転。そのあと振り返り → 記事
