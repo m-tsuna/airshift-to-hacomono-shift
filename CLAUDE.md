@@ -42,5 +42,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 職場の PC は Windows（Lenovo）、拡張機能 OK。ZIP は `dist/シフト自動入力.zip`（中に一番上のフォルダを作らない）。渡し方（ZIP かウェブストア5ドル）は未定
 - サイドパネルの画面テスト（`node tests/sidepanel_ui.js`、16項目合格）・README・22日の手順書（`docs/11月22日のテスト手順.md`）は済み
 - 手順書 PDF（`docs/11月22日のテスト手順.pdf`、3ページ目は立ち会う人用）完成。GitHub 公開済み：https://github.com/m-tsuna/airshift-to-hacomono-shift （2026-11-19）
+- **本人が戻ったら最初に**：ご主人と22日前の準備2つをもう一度伝える ②この Mac の Chrome で hacomono のシフト表を開き、サイドパネルに「hacomono：2026年11月の表（3人）」と出るか（読むだけ。CSV も実行も押さない。Chrome への hacomono ログインが要る）④2027年1月の表が開けるか・トレーナーの 1/1〜1/3 が「休」か。違えばスクショをもらって直す
 - 次：11/22 夜のテスト結果を聞く（立ち会いのメモ・時間・12月の見比べの件数）→ 直す → 記事。ここからの直しは Feature Branch → PR → /code-review
 - 11/22 夜：ご主人がこの Mac の Chrome でテスト（書き込みは1月のマスだけ）。12/18〜19：1月分の本番＝試運転
