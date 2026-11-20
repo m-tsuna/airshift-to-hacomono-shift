@@ -32,6 +32,25 @@
     6: { start: "11:00", end: "20:00", breakStart: "15:00", breakEnd: "16:00" },
   };
   const WEEKDAY_NAMES = ["日", "月", "火", "水", "木", "金", "土"];
+  // 祝日（振替休日・国民の休日を含む）。hacomono の画面に祝日の印が無いときにも休みにするため
+  // （2027/1/1 は hacomono に印が無かった）。2028年の分は 2027年の終わりごろに足す
+  const JP_HOLIDAYS = new Set([
+    // 2026年
+    "2026-01-01", "2026-01-12", "2026-02-11", "2026-02-23", "2026-03-20", "2026-04-29",
+    "2026-05-03", "2026-05-04", "2026-05-05", "2026-05-06", "2026-07-20", "2026-08-11",
+    "2026-09-21", "2026-09-22", "2026-09-23", "2026-10-12", "2026-11-03", "2026-11-23",
+    // 2027年
+    "2027-01-01", "2027-01-11", "2027-02-11", "2027-02-23", "2027-03-21", "2027-03-22",
+    "2027-04-29", "2027-05-03", "2027-05-04", "2027-05-05", "2027-07-19", "2027-08-11",
+    "2027-09-20", "2027-09-23", "2027-10-11", "2027-11-03", "2027-11-23",
+  ]);
+  // その年の祝日が一覧に入っているか（無い年は、サイドパネルで知らせる）
+  function hasHolidayList(y) {
+    return [...JP_HOLIDAYS].some((k) => k.startsWith(y + "-"));
+  }
+  function isHoliday(y, m, d) {
+    return JP_HOLIDAYS.has(y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"));
+  }
 
   // 利用者に見せるエラー（何が起きたか → どうすればよいか）
   class UserError extends Error {}
@@ -152,6 +171,8 @@
       table.days.forEach((dayInfo, i) => {
         const d = dayInfo.day;
         const weekday = new Date(y, m - 1, d).getDay();
+        // hacomono の印か、上の祝日の一覧のどちらかに当たれば祝日
+        const holiday = !!dayInfo.holiday || isHoliday(y, m, d);
         let want = null, breakBlock = null;
         if (conf.source === "csv") {
           const r = csvByDay[d];
@@ -159,7 +180,7 @@
         } else if (conf.source === "weekly") {
           const w = (conf.weekly || DEFAULT_WEEKLY)[weekday];
           const holidayOff = conf.holidayOff !== false;
-          if (w && !(dayInfo.holiday && holidayOff)) {
+          if (w && !(holiday && holidayOff)) {
             want = { start: normTime(w.start), end: normTime(w.end) };
             if (normTime(w.breakStart) && normTime(w.breakEnd)) {
               breakBlock = { start: normTime(w.breakStart), end: normTime(w.breakEnd), name: BREAK_NAME };
@@ -176,7 +197,7 @@
         if (!kind) return; // 休みのままでよいマスは一覧に出さない
         items.push({
           code: st.code, name: st.name, source: conf.source,
-          y, m, d, weekday, weekdayName: WEEKDAY_NAMES[weekday], holiday: !!dayInfo.holiday,
+          y, m, d, weekday, weekdayName: WEEKDAY_NAMES[weekday], holiday,
           dateStr: y + "-" + String(m).padStart(2, "0") + "-" + String(d).padStart(2, "0"),
           current: String(st.cells[i] || "").trim(),
           want,
@@ -199,7 +220,7 @@
 
   const api = {
     UserError, parseCsv, normTime, normName, readAirshift, parseCell, buildPlan, defaultSource,
-    monthKey, DEFAULT_WEEKLY, WEEKDAY_NAMES, BREAK_NAME,
+    monthKey, isHoliday, hasHolidayList, DEFAULT_WEEKLY, WEEKDAY_NAMES, BREAK_NAME,
   };
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   else root.ShiftLogic = api;

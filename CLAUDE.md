@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## 動かし方（コマンド）
 - `node --test "tests/*.test.js"` 単体テスト（logic.js）。1つだけなら `--test-name-pattern="名前"` を足す（Node 24 では `tests/` とフォルダだけ渡すと失敗する）
 - `node tests/e2e_mock.js` 画面に出さない Chrome（DevTools Protocol）で `mock/hacomono.html` を開き、content.js で50件入力して照らし合わせる（約2分）
+- `node tests/e2e_form.js` 同じく `mock/hacomono_form.html`（1か月分の画面の練習用）で、3人分を入れて照らし合わせる（約45秒）
 - `node tests/sidepanel_ui.js` サイドパネルの画面（chrome の機能をにせものに差し替え。止める・エラー表示・進み具合の16項目）
 - Chrome で `chrome://extensions` →「デベロッパーモード」→「パッケージ化されていない拡張機能を読み込む」で `extension/` を選ぶ。直したら拡張機能の画面で更新ボタン
 - 本物の hacomono は触らずに、`mock/`（本物の作りに似せた練習用ページ）でテストする
@@ -23,6 +24,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - 入力②：ご主人の分は CSV に出ない（Airシフトで「確定」を押していない）ので、曜日ごとの勤務時間・休憩を設定に持つ。月 休／火木金 13:00-22:00（休憩 17-18）／水 11:00-17:00（休憩 13-14）／土 11:00-20:00（休憩 15-16）／日・祝 休
 - hacomono のシフト表：`table.m_table`。1行目が日付（`th` に「1日 (日)」、祝日は class `holiday`）、5行目からスタッフ（`th a` に「[IN0119]」＋名前）。マスは `td.item`、休みは `td.item.unactive` で「休」。表示中の月は `input.period-form` の値（`202611`）
 - マスを押すと「スタッフシフト設定」の窓：欄は `[role=group][aria-label="日付" / "シフト設定" / "予定ブロック設定"]`。「休日」チェックを外すと `input[type=time]` 2つが使える。保存は `button[type=submit]`（「保存する」）
+- **1か月分の画面**（ご主人がいつも使う。表の右下「スタッフシフトを追加」→人を選ぶ／表の名前を押す、どちらも同じ作り）：行 `.d_shift_table` の先頭 `span`「1日 (金)」、次の div に時間2つと「休日」チェック、右の `.grow_1` が予定ブロック（無い日は「予定ブロックを追加」ボタン、名前は `input[type=text]`）。人の名前は `[aria-label="スタッフ"] .label`（番号は出ない → サイドパネルが表で覚えた番号を名前から当てる）。祝日の印は無い。**拡張機能は欄に入れるだけで、「保存する」はご主人が見てから押す**
+- 新しい月は、人を追加して保存するまで表に行が無い（2027年1月で確認）。祝日は hacomono の印＋ logic.js の祝日一覧（2026〜2027年。2027/1/1 は hacomono に印が無かった）
 - CSV の人と hacomono の人は、名前の空白を除いてつなぐ（11月で2人とも30日一致を確認済み）
 
 ## 守るルール
@@ -35,13 +38,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - サイドパネルは上から「① CSV を選ぶ → ② 入れる人 → ③ 一覧（新規・変更・同じ・要確認）→ 1件だけ試す／実行」。説明を読まずに使えること
 - 進み具合は「45件中12件完了…」、エラーは「何が起きたか → どうすればよいか」
 
-## 進捗（2026-11-19 昼）
-- 実装済み：logic.js（単体テスト11件合格）・content.js（練習用ページで14項目合格）・sidepanel・manifest
-- この Mac の Chrome に `~/Downloads/シフト自動入力`（extension のコピー）を読み込み済み。**直したらコピーにも写して更新ボタン**。手順書用スクショ7枚は個人情報をぼかして `docs/install-01〜07`
-- 1月のテスト用 CSV：一番上の `シフトデータ_20270101-20270103_テスト用.csv`（実名入り・GitHub に載せない。2027/1/1〜3）
-- 職場の PC は Windows（Lenovo）、拡張機能 OK。ZIP は `dist/シフト自動入力.zip`（中に一番上のフォルダを作らない）。渡し方（ZIP かウェブストア5ドル）は未定
-- サイドパネルの画面テスト（`node tests/sidepanel_ui.js`、16項目合格）・README・22日の手順書（`docs/11月22日のテスト手順.md`）は済み
-- 手順書 PDF（`docs/11月22日のテスト手順.pdf`、3ページ目は立ち会う人用）完成。GitHub 公開済み：https://github.com/m-tsuna/airshift-to-hacomono-shift （2026-11-19）
-- **本人が戻ったら最初に**：ご主人と22日前の準備2つをもう一度伝える ②この Mac の Chrome で hacomono のシフト表を開き、サイドパネルに「hacomono：2026年11月の表（3人）」と出るか（読むだけ。CSV も実行も押さない。Chrome への hacomono ログインが要る）④2027年1月の表が開けるか・トレーナーの 1/1〜1/3 が「休」か。違えばスクショをもらって直す
-- 次：11/22 夜のテスト結果を聞く（立ち会いのメモ・時間・12月の見比べの件数）→ 直す → 記事。ここからの直しは Feature Branch → PR → /code-review
-- 11/22 夜：ご主人がこの Mac の Chrome でテスト（書き込みは1月のマスだけ）。12/18〜19：1月分の本番＝試運転
+## 進捗（2026-11-19 夜）
+- main：表のマスを1つずつ開いて保存する版（GitHub 公開済み https://github.com/m-tsuna/airshift-to-hacomono-shift ）。手順書 PDF・ZIP（`dist/`）もこの版
+- 11/19 夜：本物で②「2026年11月の表（3人）」と出た。④2027年1月は表に人の行が無く、ご主人は毎月「1か月分の画面」で入れている（b）と判明。元日は休み
+- ブランチ `feature/month-form`：1か月分の画面に入れる版（保存は人）＋祝日一覧。単体12・練習用（表14／1か月分19）・サイドパネル22 合格（レビューの指摘9件を直したあと）。この Mac の Chrome のコピー（`~/Downloads/シフト自動入力`）に写し済み。**直したらコピーにも写して更新ボタン**
+- 11/19 深夜：本物の1か月分の画面（2027年1月・保存なし）で、店長の 1/2・トレーナーの 1/1〜1/3 が正しく入るのを確認。手順書（md・PDF 2つ）・ZIP・README も新しい版に直した（ブランチでコミット済み・未 push）
+- PR #1 作成済み（2026-11-20）：https://github.com/m-tsuna/airshift-to-hacomono-shift/pull/1 。/code-review の指摘9件を直して push 済み。**main へのマージは 11/22 のテストのあと**（本人が決めた）。テストで直す点はこのブランチに足してからマージ。店長用 PDF（新しい版）をご主人に渡す
+- 1月のテスト用 CSV：一番上の `シフトデータ_20270101-20270103_テスト用.csv`（実名入り・GitHub に載せない）
+- 職場の PC は Windows（Lenovo）。渡し方（ZIP かウェブストア5ドル）は未定
+- 11/22 夜：ご主人がこの Mac の Chrome でテスト（1月分）。12/18〜19：1月分の本番＝試運転。そのあと振り返り → 記事
