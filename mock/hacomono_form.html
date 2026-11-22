@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<title>練習用 hacomono 1か月分のシフト画面（本物ではありません）</title>
+<!--
+  本物の hacomono の「スタッフシフトを追加」／名前を押したときの画面（2026-11-19 に読んだ作り）に似せた練習用ページ。
+  - 年月 input.period-form、スタッフ名 [aria-label=スタッフ] .label
+  - 1日分の行 .d_shift_table：先頭に span「1日 (金)」、次の div に時間2つと「休日」チェック、右の .grow_1 が予定ブロック
+  - 「休日」にチェックがあると時間の欄は使えない（disabled）。外すと行が作り直される
+  - 予定ブロックが無い日は「予定ブロックを追加」ボタン。押すと時間2つと「予定ブロック名」の欄ができる
+  - 本物（Vue）と同じく、値は input イベントを受けたときだけ覚える
+  - 祝日の印は無い。名前・番号は架空のもの
+  ?staff=IN0002 のように、表示する人を選べる
+-->
+<style>
+  body { font-family: sans-serif; font-size: 12px; }
+  .banner { background:#fff3cd; padding:6px; margin-bottom:6px; }
+  .d_shift_table { display:flex; gap:8px; border-bottom:1px solid #eee; padding:4px 0; }
+  .w_80 { width:60px; }
+</style>
+</head>
+<body>
+<div class="banner">練習用のページです（本物の hacomono ではありません）。</div>
+<form method="post">
+  <div aria-label="対象年月" role="group" class="f_formgroup">対象年月 <input type="text" disabled maxlength="6" class="w_80 period-form"></div>
+  <div aria-label="スタッフ" role="group" class="f_formgroup">スタッフ <div class="f_select_entity"><div class="label" id="staffLabel"></div></div></div>
+  <div class="d_shift"><div class="content" id="rows"><div class="d_shift_table flex"><label>シフト設定</label> <label>予定ブロック設定</label></div></div></div>
+</form>
+<button type="submit" class="m_button success" id="save">保存する</button>
+
+<script>
+const YEAR = 2026, MONTH = 1, DAYS = 31;
+const STAFF = { IN0001: "テスト 店長", IN0002: "スタッフ A", IN0003: "スタッフ B" };
+const code = new URLSearchParams(location.search).get("staff") || "IN0001";
+// model[day] = { off, start, end, blocks: [{start,end,name}] }  … 保存されるはずの値
+const model = {};
+for (let d = 1; d <= DAYS; d++) model[d] = { off: true, start: "", end: "", blocks: [] };
+window.__mock = { model, saveCount: 0, render: () => renderAll() };
+document.querySelector(".period-form").value = "" + YEAR + String(MONTH).padStart(2, "0");
+document.getElementById("staffLabel").textContent = STAFF[code];
+document.getElementById("save").addEventListener("click", () => { window.__mock.saveCount++; });
+const WD = ["日","月","火","水","木","金","土"];
+
+function rowHtml(d) {
+  const v = model[d];
+  const dis = v.off ? ' disabled="disabled"' : "";
+  let blocks;
+  if (v.blocks.length === 0) blocks = '<button type="button" class="m_button base sm mt_1 add-block"><i class="fa fa-plus"></i> 予定ブロックを追加</button>';
+  else blocks = v.blocks.map((b, i) =>
+    '<div class="mb_1"><div class="form-inline flex ai_center"><input type="time" data-b="' + i + '" data-f="start"> → <input type="time" data-b="' + i + '" data-f="end">' +
+    '<div class="m_button_group"><button type="button" class="m_button base sm plus-block" data-b="' + i + '"><i class="fa fa-plus"></i></button><button type="button" class="m_button base sm"><i class="fa fa-times"></i></button></div></div>' +
+    '<div class="form-inline"><label class="label">予定ブロック名</label><div class="input-autocomplete"><input type="text" placeholder="例：昼休み" data-b="' + i + '" data-f="name"></div></div></div>').join("");
+  return '<span class="w_80 text-left mt_1">' + d + '日 (' + WD[new Date(YEAR, MONTH - 1, d).getDay()] + ')</span>' +
+    '<div><div class="form-inline mb_1 flex ai_center"><div class="disp_ib va_middle">' +
+    '<div class="f_input_group"><div><i class="far fa-clock"></i> <input type="time" class="sh" data-f="start"' + dis + '></div></div> → ' +
+    '<div class="f_input_group"><div><i class="far fa-clock"></i> <input type="time" class="sh" data-f="end"' + dis + '></div></div></div>' +
+    '<label class="checkbox pl_1"><input type="checkbox" value="1" class="off-cb"> 休日</label>' +
+    '<div class="m_button_group"><button type="button" class="m_button base sm"><i class="fa fa-plus"></i></button></div></div></div>' +
+    '<div class="grow_1 ml_2">' + blocks + '</div>';
+}
+function renderRow(d) {
+  const old = document.querySelector('[data-day="' + d + '"]');
+  const row = document.createElement("div");
+  row.className = "d_shift_table form-inline flex ai_stretch mb_2";
+  row.dataset.day = d;
+  row.innerHTML = rowHtml(d);
+  if (old) old.replaceWith(row); else document.getElementById("rows").appendChild(row); // 本物と同じく行ごと作り直す
+  const v = model[d];
+  // 値はプログラムの側から入れる（HTML の value 属性ではない）
+  row.querySelector(".off-cb").checked = v.off;
+  const sh = row.querySelectorAll(".sh");
+  sh[0].value = v.off ? "" : v.start; sh[1].value = v.off ? "" : v.end;
+  row.querySelectorAll("input[data-b]").forEach((inp) => { inp.value = v.blocks[+inp.dataset.b][inp.dataset.f]; });
+  row.querySelector(".off-cb").addEventListener("change", (e) => { v.off = e.target.checked; setTimeout(() => renderRow(d), 50); });
+  sh.forEach((inp) => inp.addEventListener("input", () => { v[inp.dataset.f] = inp.value; }));
+  row.querySelectorAll("input[data-b]").forEach((inp) => inp.addEventListener("input", () => { v.blocks[+inp.dataset.b][inp.dataset.f] = inp.value; }));
+  const add = row.querySelector(".add-block");
+  if (add) add.addEventListener("click", () => { v.blocks.push({ start: "", end: "", name: "" }); setTimeout(() => renderRow(d), 50); });
+  row.querySelectorAll(".plus-block").forEach((b) => b.addEventListener("click", () => { v.blocks.splice(+b.dataset.b + 1, 0, { start: "", end: "", name: "" }); setTimeout(() => renderRow(d), 50); }));
+}
+function renderAll() { for (let d = 1; d <= DAYS; d++) renderRow(d); }
+renderAll();
+</script>
+</body>
+</html>

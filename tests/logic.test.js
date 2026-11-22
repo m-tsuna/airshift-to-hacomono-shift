@@ -117,3 +117,15 @@ test("最初の入れ方：CSV に名前があれば csv、無ければ none", (
   assert.equal(L.defaultSource("スタッフ B", csv), "csv");
   assert.equal(L.defaultSource("だれか", csv), "none");
 });
+
+test("祝日：hacomono に印が無くても、祝日の一覧に当たれば曜日の決まりの人は休み（2027/1/1）", () => {
+  const days = [];
+  for (let d = 1; d <= 31; d++) days.push({ day: d, holiday: false }); // 印なし（1か月分の画面と同じ）
+  const t = { month: "202701", days, staff: [{ code: "K", name: "x", cells: days.map(() => "休") }] };
+  const plan = L.buildPlan(t, null, { K: { source: "weekly" } });
+  assert.ok(!plan.items.some((it) => it.d === 1), "1/1（金・元日）は入れない");
+  assert.ok(!plan.items.some((it) => it.d === 11), "1/11（月・成人の日）は月曜で休み");
+  assert.equal(plan.items.find((it) => it.d === 2).want.start, "11:00"); // 1/2（土）は入る
+  assert.ok(L.isHoliday(2027, 3, 22) && !L.isHoliday(2027, 1, 2));
+  assert.ok(L.hasHolidayList(2027) && !L.hasHolidayList(2028));
+});
