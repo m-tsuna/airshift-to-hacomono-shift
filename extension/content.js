@@ -34,6 +34,7 @@
     betweenCells: 800,  // マスとマスの間。hacomono に負担をかけないため
     timeout: 10000,     // 窓が開く・閉じるのを待つ最長時間
     betweenFormDays: 150, // 1か月分の画面で、1日ごとの間（保存しないので短くてよい）
+    watchPage: 1000,    // 画面（人・月）が変わったかを見る間隔。変わったらサイドパネルに知らせる
   };
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
@@ -121,7 +122,7 @@
       return { ok: false, error: "1か月分の画面の『対象年月』が読めません → ページを再読み込み（Windows は F5、Mac は ⌘R）してください" };
     }
     if (!name) {
-      return { ok: false, error: "スタッフがまだ選ばれていません → 画面の『スタッフ』で入れる人を選んでから、『hacomono の表を読み直す』を押してください" };
+      return { ok: false, error: "スタッフがまだ選ばれていません → 画面の『スタッフ』で入れる人を選んでください（選ぶと、サイドパネルが自動で読み直します）" };
     }
     const rows = formRows();
     return {
@@ -149,10 +150,10 @@
     const monthInput = document.querySelector(SEL.month);
     const wantMonth = item.y + String(item.m).padStart(2, "0");
     if (!monthInput || monthInput.value.trim() !== wantMonth) {
-      return { ok: false, fatal: true, error: "画面の月が " + item.y + "年" + item.m + "月ではなくなりました → 『hacomono の表を読み直す』を押してから、もう一度『画面に入れる』を押してください" };
+      return { ok: false, fatal: true, error: "画面の月が " + item.y + "年" + item.m + "月ではなくなりました → 一覧が新しくなったのを見てから、もう一度『画面に入れる』を押してください" };
     }
     if (norm(formStaffName()) !== norm(item.name)) {
-      return { ok: false, fatal: true, error: "画面のスタッフが " + item.name + " さんではなくなりました → 『hacomono の表を読み直す』を押してから、もう一度『画面に入れる』を押してください" };
+      return { ok: false, fatal: true, error: "画面のスタッフが " + item.name + " さんではなくなりました → 一覧が新しくなったのを見てから、もう一度『画面に入れる』を押してください" };
     }
     let row = formRow(item.d);
     if (!row) return { ok: false, error: item.d + "日の行が見つかりません" };
@@ -259,7 +260,7 @@
     // （1か月分の画面のつもりで押したのに表の画面だと、表の方は保存まで進んでしまうため）
     const pageMode = formRows().length ? "form" : "table";
     if (item.mode && item.mode !== pageMode) {
-      return { ok: false, fatal: true, error: "hacomono の画面が変わりました（" + (pageMode === "form" ? "1か月分の画面" : "シフト表") + "になっています）→ 『hacomono の表を読み直す』を押してから、もう一度押してください" };
+      return { ok: false, fatal: true, error: "hacomono の画面が変わりました（" + (pageMode === "form" ? "1か月分の画面" : "シフト表") + "になっています）→ 一覧が新しくなったのを見てから、もう一度押してください" };
     }
     if (pageMode === "form") return applyFormDay(item);
     if (modalGroup("日付")) await closeModal(); // 前の窓が残っていたら閉じる
@@ -367,6 +368,30 @@
       }
     });
   }
+  // ---- 画面が変わったらサイドパネルに知らせる --------------------
+  // 人を選び直す・月を変える・表と1か月分の画面を行き来したときに、
+  // 「hacomono の表を読み直す」を押さなくても一覧が新しくなるようにする
+  function pageSignature() {
+    const rows = formRows();
+    const month = (document.querySelector(SEL.month) || {}).value || "";
+    if (rows.length) return "form|" + month + "|" + formStaffName() + "|" + rows.length;
+    const table = document.querySelector(SEL.table);
+    return table ? "table|" + month + "|" + table.querySelectorAll(SEL.staffLink).length : "none|" + month;
+  }
+  if (typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage) {
+    let last = pageSignature();
+    setInterval(() => {
+      const now = pageSignature();
+      if (now === last) return;
+      last = now;
+      try {
+        // サイドパネルが閉じていると届かないが、それでよい（開いたときに読む）
+        const p = chrome.runtime.sendMessage({ type: "pageChanged" });
+        if (p && p.catch) p.catch(() => {});
+      } catch (e) { /* 拡張機能を更新した直後など。ページを再読み込みすれば戻る */ }
+    }, WAIT.watchPage);
+  }
+
   // テスト用（Safari の練習用ページで、拡張機能なしに呼べるように）
   window.__shiftFiller = { readTable, applyOne, readForm };
 })();

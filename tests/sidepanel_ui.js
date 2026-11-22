@@ -33,6 +33,7 @@ const FAKE_CHROME = `
 window.__fake = { url: "https://demo-admin.hacomono.jp/#/reservation/shifts/", table: null, delay: 50, fatalAt: 0, throwSend: false, applied: 0 };
 const mem = {};
 window.chrome = {
+  runtime: { onMessage: { addListener: (fn) => { window.__fake.listener = fn; } } },
   storage: { local: { get: async (k) => ({ [k]: mem[k] }), set: async (o) => Object.assign(mem, o) } },
   tabs: {
     query: async () => [{ id: 1, url: window.__fake.url }],
@@ -176,6 +177,19 @@ await js(`window.__fake.table = ${JSON.stringify(fakeTable("202601"))}; readTabl
 await sleep(300);
 const migrated = await js(`(() => { const sel = [...document.querySelectorAll("#staffList .staff")].find((d) => d.textContent.includes("[IN0001]")).querySelector("select"); return sel.value; })()`);
 check("1か月分の画面で選んだ「曜日の決まり」が、表で番号が分かっても残る", migrated === "weekly", migrated);
+
+// hacomono の画面で人を変えたら、「読み直す」を押さなくても自動で新しくなる（11/22 のテストで店長のときに手間取った所）
+await openPanel(`window.__fake.table = ${JSON.stringify(FORM)}; mem.codes = { "スタッフA": "IN0002" };`);
+await pickCsv(CSV_JAN);
+await js(`window.__fake.table = ${JSON.stringify({ ...FORM, staff: [{ code: "", name: "店長", cells: Array(31).fill("休") }] })}; window.__fake.listener({ type: "pageChanged" }); "ok"`);
+await sleep(1000);
+check("画面の人を変えると、自動で「店長 さんの1か月分の画面」に変わる", (await text("tableInfo")).includes("店長 さんの1か月分の画面") && (await text("staffList")).includes("店長"), await text("tableInfo"));
+// 入れている途中に知らせが来ても読み直さない（終わってから読み直す）
+await js(`window.__fake.delay = 600; window.__fake.table = ${JSON.stringify(FORM)}; readTable().then(() => { document.getElementById("run").click(); return "ok"; })`);
+await sleep(100);
+await js(`window.__fake.listener({ type: "pageChanged" }); "ok"`);
+await sleep(800);
+check("  入れている途中は読み直さず、そのまま続ける", (await text("progress")).includes("件完了…"), await text("progress"));
 
 // 祝日の一覧が無い年（2028年）は知らせる
 await openPanel(`window.__fake.table = ${JSON.stringify({ ...FORM, month: "202801", staff: [{ code: "", name: "店長", cells: Array(31).fill("休") }] })};`);

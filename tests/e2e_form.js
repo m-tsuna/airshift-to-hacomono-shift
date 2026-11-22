@@ -138,6 +138,24 @@ r2 = await js("window.__shiftFiller.applyOne(" + JSON.stringify({ ...newItem, mo
 model = JSON.parse(await js("JSON.stringify(window.__mock.model)"));
 check("画面の月が変わったら、入れずに止める", !r2.ok && r2.fatal && r2.error.includes("ではなくなりました") && model[newItem.d].off === true, JSON.stringify(r2));
 
+// ---- 画面が変わったらサイドパネルに知らせる（「読み直す」を押さなくてよくする） ----
+// 拡張機能の chrome.runtime.sendMessage をにせものにして、知らせた回数を数える
+await js("location.href = " + JSON.stringify(MOCK_URL + "?staff=IN0001") + "; 'ok'");
+await sleep(700);
+await js(`window.__sent = 0; window.chrome = window.chrome || {}; window.chrome.runtime = { sendMessage: async (m) => { if (m.type === "pageChanged") window.__sent++; } }; "ok"`);
+await js(fs.readFileSync(path.join(ROOT, "extension/content.js"), "utf8"));
+const t2 = await read("IN0001");
+const item2 = L.buildPlan(t2, null, { IN0001: weekly }).items.find((i) => i.kind === "new");
+await js("window.__shiftFiller.applyOne(" + JSON.stringify({ ...item2, mode: "form" }) + ")");
+await sleep(1500);
+check("欄に入れている間は知らせない（人・月は同じ）", (await js("window.__sent")) === 0, await js("window.__sent"));
+await js(`document.getElementById("staffLabel").textContent = "スタッフ B"; "ok"`);
+await sleep(1500);
+check("画面の人が変わったら、サイドパネルに1回知らせる", (await js("window.__sent")) === 1, await js("window.__sent"));
+await js(`document.querySelector(".period-form").value = "202602"; "ok"`);
+await sleep(1500);
+check("画面の月が変わっても知らせる", (await js("window.__sent")) === 2, await js("window.__sent"));
+
 console.log(`\n合格 ${pass}／不合格 ${fail}`);
 } finally { chrome.kill(); }
 process.exit(fail ? 1 : 0);

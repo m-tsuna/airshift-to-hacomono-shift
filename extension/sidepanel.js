@@ -289,6 +289,22 @@ $("run").addEventListener("click", () => run(false));
 $("tryOne").addEventListener("click", () => run(true));
 $("stop").addEventListener("click", () => { state.stopRequested = true; $("progress").textContent += "　止めています…"; });
 
+// hacomono の画面で人・月が変わったら、自動で読み直す（「読み直す」を押し忘れても前の人が残らない）
+let autoTimer = null;
+function autoReload() {
+  clearTimeout(autoTimer);
+  // 画面が描き終わるのを少し待つ。続けて変わったら最後の1回だけ読む
+  autoTimer = setTimeout(() => {
+    if (state.running) return; // 入れている途中は読まない（終わったら読み直す）
+    showMsg(""); $("progress").textContent = ""; $("result").innerHTML = "";
+    readTable();
+  }, 600);
+}
+if (chrome.runtime && chrome.runtime.onMessage) {
+  chrome.runtime.onMessage.addListener((msg) => { if (msg && msg.type === "pageChanged") autoReload(); });
+}
+if (chrome.tabs && chrome.tabs.onActivated) chrome.tabs.onActivated.addListener(autoReload); // 別のタブに切り替えたとき
+
 (async function start() {
   await loadSettings();
   await readTable();
