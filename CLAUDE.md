@@ -42,5 +42,6 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - main：1か月分の画面に入れる版（保存は人）＋祝日一覧＋人を選ぶと自動で読み直す（v1.1.0）。PR #1 をマージ済み。GitHub https://github.com/m-tsuna/airshift-to-hacomono-shift
 - 11/22 ご主人のテスト：1月分が上手く入った。店長とトレーナーで流れが違う所（読み直す）で手間取った → 自動で読み直すように直した
 - この Mac の Chrome のコピー（`~/Downloads/シフト自動入力`）・ZIP（`dist/`）も v1.1.0。**直したらコピーにも写して更新ボタン**
-- 次：職場の Windows PC に ZIP で入れる（渡し方は未定）→ 12/18〜19 の1月分の本番＝試運転 → 振り返り（役立ったか・分かりにくい所）→ 記事
+- 渡し方は ZIP（無料）に決定。11/22 のテストを試運転とする（本人：本番と同じ流れで試した。分かりにくい所は無い）→ 12月の振り返りの追記はしない
+- 次：記事（`提出記事.md` 下書き済み）の仕上げ → 職場の Windows PC に ZIP で入れる → 12/18〜19 に1月分の本番
 - これからの直しは Feature Branch → PR → /code-review → 本人の OK → マージ
